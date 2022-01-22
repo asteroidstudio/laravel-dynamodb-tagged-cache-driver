@@ -12,14 +12,6 @@ You can install the package via composer:
 ```bash
 composer require asteroidstudio/laravel-dynamodb-tagged-cache-driver
 ```
-
-You can publish and run the migrations with:
-
-```bash
-php artisan vendor:publish --tag="laravel-dynamodb-tagged-cache-driver-migrations"
-php artisan migrate
-```
-
 You can publish the config file with:
 
 ```bash
