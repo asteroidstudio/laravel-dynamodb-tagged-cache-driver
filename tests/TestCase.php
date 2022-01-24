@@ -10,6 +10,25 @@ use Illuminate\Foundation\Bootstrap\LoadEnvironmentVariables;
 class TestCase extends Orchestra
 {
     protected $loadEnvironmentVariables = true;
+
+    protected function resolveApplicationConfiguration($app)
+    {
+        $app->useEnvironmentPath(__DIR__.'/..');
+        parent::resolveApplicationConfiguration($app);
+    }
+
+    
+    /**
+    * Setup the test environment.
+    */
+    protected function setUp(): void
+    {
+        $app = $this->resolveApplication();
+        
+        parent::setUp();
+
+        // Code after application created.
+    }
     
     protected function getPackageProviders($app)
     {
@@ -20,11 +39,12 @@ class TestCase extends Orchestra
 
     public function getEnvironmentSetUp($app)
     {
-        $app->useEnvironmentPath(__DIR__.'/..');
-        $app->bootstrapWith([LoadEnvironmentVariables::class]);
+        
+        // $app->bootstrapWith([LoadEnvironmentVariables::class]);
         parent::getEnvironmentSetUp($app);
+        // dd(config('cache.stores.dynamodb'));
         config()->set('database.default', 'testing');
-        config()->set('cache.stores.dynamodb.attributes.sort_key', 'SK');
-        config()->set('cache.stores.dynamodb.attributes.key', 'PK');
+        config()->set('cache.stores.dynamodb.attributes.key', 'key');
+        config()->set('cache.stores.dynamodb.attributes.sort_key', 'sort_key');
     }
 }

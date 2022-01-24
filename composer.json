@@ -18,15 +18,16 @@
     "require": {
         "php": "^7.4",
         "spatie/laravel-package-tools": "^1.9.2",
-        "illuminate/contracts": "^8.73"
+        "illuminate/contracts": "^8.73"        
     },
     "require-dev": {
+        "aws/aws-sdk-php": "^3.198.1",
         "nunomaduro/collision": "^5.10",
         "orchestra/testbench": "^6.22",
         "pestphp/pest": "^1.21",
         "pestphp/pest-plugin-laravel": "^1.1",
         "phpunit/phpunit": "^9.5",
-        "spatie/laravel-ray": "^1.26"
+        "spatie/laravel-ray": "^1.26"        
     },
     "autoload": {
         "psr-4": {
