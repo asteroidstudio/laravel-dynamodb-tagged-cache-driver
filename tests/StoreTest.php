@@ -8,6 +8,7 @@ use stdClass;
 
 class StoreTest extends TestCase
 {
+    /*
     public function testItemsCanBeSetAndRetrieved()
     {
         $store = new TaggedDynamodbStore;
@@ -147,48 +148,24 @@ class StoreTest extends TestCase
         $wannabeOwner->release();
     }
 
-    // public function testValuesAreNotStoredByReference()
-    // {
-    //     $store = new TaggedDynamodbStore($serialize = true);
-    //     $object = new stdClass;
-    //     $object->foo = true;
+    public function testFlush()
+    {
+        $store = new TaggedDynamodbStore;
+        $store->forever('foo', 'bar');
+        $this->assertEquals($store->get('foo'), 'bar');
+        $store->flush();
+        $this->assertNull($store->get('foo'));
+    }
+    */
+   
 
-    //     $store->put('object', $object, 10);
-    //     $object->bar = true;
-
-    //     $this->assertObjectNotHasAttribute('bar', $store->get('object'));
-    // }
-
-    // public function testValuesAreStoredByReferenceIfSerializationIsDisabled()
-    // {
-    //     $store = new TaggedDynamodbStore;
-    //     $object = new stdClass;
-    //     $object->foo = true;
-
-    //     $store->put('object', $object, 10);
-    //     $object->bar = true;
-
-    //     $this->assertObjectHasAttribute('bar', $store->get('object'));
-    // }
-
-    // public function testReleasingLockAfterAlreadyForceReleasedByAnotherOwnerFails()
-    // {
-    //     $store = new TaggedDynamodbStore;
-    //     $owner = $store->lock('foo', 10);
-    //     $wannabeOwner = $store->lock('foo', 10);
-    //     $owner->acquire();
-    //     $wannabeOwner->forceRelease();
-
-    //     $this->assertFalse($wannabeOwner->release());
-    // }
-
-    // public function testCacheCanBeSavedWithMultipleTags()
-    // {
-    //     $store = new TaggedDynamodbStore;
-    //     $tags = ['bop', 'zap'];
-    //     $store->tags($tags)->put('foo', 'bar', 10);
-    //     $this->assertSame('bar', $store->tags($tags)->get('foo'));
-    // }
+    public function testCacheCanBeSavedWithMultipleTags()
+    {
+        $store = new TaggedDynamodbStore;
+        $tags = ['bop', 'zap'];
+        $store->tags($tags)->put('foo', 'bar', 10);
+        $this->assertSame('bar', $store->tags($tags)->get('foo'));
+    }
 
     // public function testCacheCanBeSetWithDatetimeArgument()
     // {

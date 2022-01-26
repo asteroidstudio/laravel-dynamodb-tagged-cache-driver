@@ -2,14 +2,15 @@
 
 namespace AsteroidStudio\LaravelDynamodbTaggedCacheDriver;
 
-use Aws\DynamoDb\DynamoDbClient;
-use Aws\DynamoDb\Exception\DynamoDbException;
-use Illuminate\Support\InteractsWithTime;
-use Illuminate\Support\Carbon;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
-use Illuminate\Contracts\Cache\LockProvider;
+use Illuminate\Cache\TagSet;
+use Illuminate\Support\Carbon;
+use Aws\DynamoDb\DynamoDbClient;
 use Illuminate\Cache\TaggableStore;
+use Illuminate\Support\InteractsWithTime;
+use Illuminate\Contracts\Cache\LockProvider;
+use Aws\DynamoDb\Exception\DynamoDbException;
 
 class TaggedDynamodbStore extends TaggableStore implements LockProvider 
 {
@@ -374,7 +375,44 @@ class TaggedDynamodbStore extends TaggableStore implements LockProvider
      */
     public function flush()
     {
-        throw new RuntimeException('DynamoDb does not support flushing an entire table. Please create a new table.');
+        $client = $this->getClient();
+        $response = $client->scan([
+            'TableName' => $this->table,
+            'ConsistentRead' => false,
+        ]);
+
+        if (! isset($response['Items'])) {
+            return;
+        }
+
+        if ($this->isExpired($response['Items'])) {
+            return;
+        }
+
+        collect($response['Items'])->map(fn($item) => [$item[$this->keyAttribute]['S'], $item[$this->sortKeyAttribute]['S']])
+            ->chunk(25)
+            ->each(function($items) use ($client) {
+                $client->batchWriteItem([
+                    'RequestItems' => [
+                        $this->table => collect($items)->map(function ($value) {
+                            return [
+                                'DeleteRequest' => [
+                                    'Key' => [
+                                        $this->keyAttribute => [
+                                            'S' => $value[0],
+                                        ],
+                                        $this->sortKeyAttribute => [
+                                            'S' => $value[1],
+                                        ],                                        
+                                    ],
+                                ],
+                            ];
+                        })->values()->all(),
+                    ],
+                ]);            
+            });
+
+        return true;
     }
 
     /**
@@ -461,6 +499,11 @@ class TaggedDynamodbStore extends TaggableStore implements LockProvider
     public function restoreLock($name, $owner)
     {
 
+    }
+
+    public function tags($names)
+    {
+        return new TaggedCache($this, new TagSet($this, is_array($names) ? $names : func_get_args()));
     }
 
     protected function getClient()
