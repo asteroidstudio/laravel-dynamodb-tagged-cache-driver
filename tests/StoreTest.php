@@ -8,7 +8,7 @@ use stdClass;
 
 class StoreTest extends TestCase
 {
-    /*
+
     public function testItemsCanBeSetAndRetrieved()
     {
         $store = new TaggedDynamodbStore;
@@ -147,7 +147,7 @@ class StoreTest extends TestCase
         $owner->release();
         $wannabeOwner->release();
     }
-
+    
     public function testFlush()
     {
         $store = new TaggedDynamodbStore;
@@ -156,9 +156,9 @@ class StoreTest extends TestCase
         $store->flush();
         $this->assertNull($store->get('foo'));
     }
-    */
+    
    
-
+    
     public function testCacheCanBeSavedWithMultipleTags()
     {
         $store = new TaggedDynamodbStore;
@@ -167,16 +167,7 @@ class StoreTest extends TestCase
         $this->assertSame('bar', $store->tags($tags)->get('foo'));
     }
 
-    // public function testCacheCanBeSetWithDatetimeArgument()
-    // {
-    //     $store = new TaggedDynamodbStore;
-    //     $tags = ['bop', 'zap'];
-    //     $duration = new DateTime;
-    //     $duration->add(new DateInterval('PT10M'));
-    //     $store->tags($tags)->put('foo', 'bar', $duration);
-    //     $this->assertSame('bar', $store->tags($tags)->get('foo'));
-    // }
-
+   
     // public function testCacheSavedWithMultipleTagsCanBeFlushed()
     // {
     //     $store = new TaggedDynamodbStore;

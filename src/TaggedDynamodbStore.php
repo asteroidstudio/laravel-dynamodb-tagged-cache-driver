@@ -58,7 +58,8 @@ class TaggedDynamodbStore extends TaggableStore implements LockProvider
      */
     protected $expirationAttribute;
 
-    protected $itemPrefix;
+    protected $keyPrefix;
+    protected $sortKeyPrefix;
 
     public function __construct()
     {
@@ -67,7 +68,8 @@ class TaggedDynamodbStore extends TaggableStore implements LockProvider
         $this->sortKeyAttribute = config('cache.stores.dynamodb.attributes.sort_key', 'sort_key');
         $this->valueAttribute = config('cache.stores.dynamodb.attributes.value', 'value');
         $this->expirationAttribute = config('cache.stores.dynamodb.attributes.expiration', 'expires_at');        
-        $this->itemPrefix = 'ITEM-';
+        $this->keyPrefix = 'ITEM-';
+        $this->sortKeyPrefix = 'ITEM-';
     }
     
     /**
@@ -84,10 +86,10 @@ class TaggedDynamodbStore extends TaggableStore implements LockProvider
             'ConsistentRead' => false,
             'Key' => [
                 $this->keyAttribute => [
-                    'S' => $this->itemPrefix.$key,
+                    'S' => $this->keyPrefix.$key,
                 ],
                 $this->sortKeyAttribute => [
-                    'S' => $this->itemPrefix.$key,
+                    'S' => $this->sortKeyPrefix.$key,
                 ],
             ],
         ]);
@@ -120,7 +122,7 @@ class TaggedDynamodbStore extends TaggableStore implements LockProvider
     public function many(array $keys)
     {
         $prefixedKeys = array_map(function ($key) {
-            return $this->itemPrefix.$key;
+            return [$this->keyPrefix.$key, $this->sortKeyPrefix.$key];
         }, $keys);
 
         $client = $this->getClient();
@@ -131,10 +133,10 @@ class TaggedDynamodbStore extends TaggableStore implements LockProvider
                     'Keys' => collect($prefixedKeys)->map(function ($key) {
                         return [
                             $this->keyAttribute => [
-                                'S' => $key,
+                                'S' => $key[0],
                             ],
                             $this->sortKeyAttribute => [
-                                'S' => $key,
+                                'S' => $key[1],
                             ],
                         ];
                     })->all(),
@@ -157,7 +159,7 @@ class TaggedDynamodbStore extends TaggableStore implements LockProvider
                 );
             }
 
-            return [Str::replaceFirst($this->itemPrefix, '', $response[$this->keyAttribute]['S']) => $value];
+            return [Str::replaceFirst($this->keyPrefix, '', $response[$this->keyAttribute]['S']) => $value];
         })->all());
     }
 
@@ -176,16 +178,41 @@ class TaggedDynamodbStore extends TaggableStore implements LockProvider
             'TableName' => $this->table,
             'Item' => [
                 $this->keyAttribute => [
-                    'S' => $this->itemPrefix.$key,
+                    'S' => $this->keyPrefix.$key,
                 ],
                 $this->sortKeyAttribute => [
-                    'S' => $this->itemPrefix.$key,
+                    'S' => $this->sortKeyPrefix.$key,
                 ],
                 $this->valueAttribute => [
                     $this->type($value) => $this->serialize($value),
                 ],
                 $this->expirationAttribute => [
                     'N' => (string) $this->toTimestamp($seconds),
+                ],
+            ],
+        ]);
+
+        return true;
+    }
+
+    public function putRelation($key, $sortKey)
+    {
+        $client = $this->getClient();
+        $value = '';
+        $client->putItem([
+            'TableName' => $this->table,
+            'Item' => [
+                $this->keyAttribute => [
+                    'S' => $this->keyPrefix.$key,
+                ],
+                $this->sortKeyAttribute => [
+                    'S' => $this->sortKeyPrefix.$sortKey,
+                ],
+                $this->valueAttribute => [
+                    $this->type($value) => $this->serialize($value),
+                ],
+                $this->expirationAttribute => [
+                    'N' => (string) $this->toTimestamp(Carbon::now()->addYears(5)->getTimestamp()),
                 ],
             ],
         ]);
@@ -212,10 +239,10 @@ class TaggedDynamodbStore extends TaggableStore implements LockProvider
                             'PutRequest' => [
                                 'Item' => [
                                     $this->keyAttribute => [
-                                        'S' => $this->itemPrefix.$key,
+                                        'S' => $this->keyPrefix.$key,
                                     ],
                                     $this->sortKeyAttribute => [
-                                        'S' => $this->itemPrefix.$key,
+                                        'S' => $this->sortKeyPrefix.$key,
                                     ],
                                     $this->valueAttribute => [
                                         $this->type($value) => $this->serialize($value),
@@ -249,10 +276,10 @@ class TaggedDynamodbStore extends TaggableStore implements LockProvider
                 'TableName' => $this->table,
                 'Key' => [
                     $this->keyAttribute => [
-                        'S' => $this->itemPrefix.$key,
+                        'S' => $this->keyPrefix.$key,
                     ],
                     $this->sortKeyAttribute => [
-                        'S' => $this->itemPrefix.$key,
+                        'S' => $this->sortKeyPrefix.$key,
                     ],
                 ],
                 'ConditionExpression' => 'attribute_exists(#key) AND #expires_at > :now',
@@ -298,10 +325,10 @@ class TaggedDynamodbStore extends TaggableStore implements LockProvider
                 'TableName' => $this->table,
                 'Key' => [
                     $this->keyAttribute => [
-                        'S' => $this->itemPrefix.$key,
+                        'S' => $this->keyPrefix.$key,
                     ],
                     $this->sortKeyAttribute => [
-                        'S' => $this->itemPrefix.$key,
+                        'S' => $this->sortKeyPrefix.$key,
                     ],
                 ],
                 'ConditionExpression' => 'attribute_exists(#key) AND #expires_at > :now',
@@ -357,10 +384,10 @@ class TaggedDynamodbStore extends TaggableStore implements LockProvider
             'TableName' => $this->table,
             'Key' => [
                 $this->keyAttribute => [
-                    'S' => $this->itemPrefix.$key,
+                    'S' => $this->keyPrefix.$key,
                 ],
                 $this->sortKeyAttribute => [
-                    'S' => $this->itemPrefix.$key,
+                    'S' => $this->sortKeyPrefix.$key,
                 ],
             ],
         ]);
@@ -422,7 +449,7 @@ class TaggedDynamodbStore extends TaggableStore implements LockProvider
      */
     public function getPrefix()
     {
-        return $this->itemPrefix;
+        return $this->keyPrefix;
     }
 
     /**
@@ -441,10 +468,10 @@ class TaggedDynamodbStore extends TaggableStore implements LockProvider
                 'TableName' => $this->table,
                 'Item' => [
                     $this->keyAttribute => [
-                        'S' => $this->itemPrefix.$key,
+                        'S' => $this->keyPrefix.$key,
                     ],
                     $this->sortKeyAttribute => [
-                        'S' => $this->itemPrefix.$key,
+                        'S' => $this->sortKeyPrefix.$key,
                     ],
                     $this->valueAttribute => [
                         $this->type($value) => $this->serialize($value),
@@ -594,6 +621,26 @@ class TaggedDynamodbStore extends TaggableStore implements LockProvider
         $expiration = $expiration ?: Carbon::now();
 
         return isset($item[$this->expirationAttribute]) && $expiration->getTimestamp() >= $item[$this->expirationAttribute]['N'];
+    }
+
+    public function setKeyPrefix($prefix)
+    {
+        $this->keyPrefix = $prefix;
+    }
+
+    public function setSortKeyPrefix($prefix)
+    {
+        $this->sortKeyPrefix = $prefix;
+    }
+
+    public function getKeyPrefix()
+    {
+        return $this->keyPrefix;
+    }
+
+    public function getSortKeyPrefix()
+    {
+        return $this->sortKeyPrefix;
     }
 }
 
